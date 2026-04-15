@@ -41,7 +41,7 @@ builder.Services.AddAuthorization();
 // ─── CORS ────────────────────────────────────────────────
 var allowedOrigins = builder.Configuration
     .GetSection("AllowedOrigins").Get<string[]>()
-    ?? new[] { "http://localhost:3000", "https://softhub-sales-backend.onrender.com" };
+    ?? new[] { "http://localhost:3000" };
 
 builder.Services.AddCors(options =>
     options.AddPolicy("Frontend", policy =>

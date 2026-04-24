@@ -86,12 +86,13 @@ public static class MappingHelper
         a.CreatedAt, a.User?.FullName);
 
     public static LeadListItemDto ToListDto(Lead l) => new(
-        l.Id, l.CompanyName, l.Industry,
-        l.ContactPersonName, l.ContactPersonPosition,
-        l.Status, l.InterestLevel, l.PotentialValue,
-        l.NextFollowUpDate, l.CreatedAt, l.LastContactedAt,
-        l.AssignedTo?.FullName, l.AssignedToId,
-        LeadScoreHelper.ComputeScore(l));
+    l.Id, l.CompanyName, l.Industry,
+    l.ContactPersonName, l.ContactPersonPosition,
+    l.Email, l.Phone, l.Location, l.CompanySize, l.Source,
+    l.Status, l.InterestLevel, l.PotentialValue,
+    l.NextFollowUpDate, l.CreatedAt, l.LastContactedAt,
+    l.AssignedTo?.FullName, l.AssignedToId,
+    LeadScoreHelper.ComputeScore(l));
 
     public static LeadDto ToDetailDto(Lead l) => new(
         l.Id, l.CompanyName, l.Industry,

@@ -101,6 +101,11 @@ public record LeadListItemDto(
     string Industry,
     string ContactPersonName,
     string ContactPersonPosition,
+    string Email,
+    string Phone,
+    string Location,
+    string CompanySize,
+    string Source,
     string Status,
     string InterestLevel,
     decimal PotentialValue,
@@ -111,7 +116,6 @@ public record LeadListItemDto(
     int? AssignedToId,
     int LeadScore
 );
-
 public record MoveLeadRequest(string Status);
 
 public record BulkUpdateRequest(

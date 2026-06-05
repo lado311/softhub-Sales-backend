@@ -1,3 +1,4 @@
+using System.Security.Cryptography;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
@@ -15,11 +16,16 @@ public class AuthController : ControllerBase
 {
     private readonly AppDbContext _db;
     private readonly ITokenService _tokenService;
+    private readonly IEmailService _emailService;
+    private readonly IConfiguration _config;
 
-    public AuthController(AppDbContext db, ITokenService tokenService)
+    public AuthController(AppDbContext db, ITokenService tokenService,
+        IEmailService emailService, IConfiguration config)
     {
         _db = db;
         _tokenService = tokenService;
+        _emailService = emailService;
+        _config = config;
     }
 
     // POST /api/auth/login
@@ -113,6 +119,65 @@ public class AuthController : ControllerBase
         user.PasswordHash = BCrypt.Net.BCrypt.HashPassword(req.NewPassword);
         await _db.SaveChangesAsync();
         return NoContent();
+    }
+
+    // POST /api/auth/forgot-password
+    [HttpPost("forgot-password")]
+    public async Task<IActionResult> ForgotPassword([FromBody] ForgotPasswordRequest req)
+    {
+        const string genericMessage = "თუ ეს ელ-ფოსტა სისტემაში არსებობს, გამოგზავნილია პაროლის აღდგენის ბმული.";
+
+        var user = await _db.Users.FirstOrDefaultAsync(u => u.Email == req.Email && u.IsActive);
+        if (user == null)
+            return Ok(new { message = genericMessage });
+
+        // invalidate previous unused tokens
+        var staleTokens = await _db.PasswordResetTokens
+            .Where(t => t.UserId == user.Id && !t.IsUsed && t.ExpiresAt > DateTime.UtcNow)
+            .ToListAsync();
+        staleTokens.ForEach(t => t.IsUsed = true);
+
+        var rawBytes = RandomNumberGenerator.GetBytes(32);
+        var tokenStr = Convert.ToBase64String(rawBytes)
+            .Replace("+", "-").Replace("/", "_").Replace("=", "");
+
+        _db.PasswordResetTokens.Add(new PasswordResetToken
+        {
+            Token = tokenStr,
+            UserId = user.Id,
+            ExpiresAt = DateTime.UtcNow.AddHours(1)
+        });
+        await _db.SaveChangesAsync();
+
+        var frontendUrl = _config["FrontendUrl"] ?? "http://localhost:3000";
+        var resetLink = $"{frontendUrl}/reset-password?token={tokenStr}";
+
+        await _emailService.SendPasswordResetEmailAsync(user.Email, user.FullName, resetLink);
+
+        return Ok(new { message = genericMessage });
+    }
+
+    // POST /api/auth/reset-password
+    [HttpPost("reset-password")]
+    public async Task<IActionResult> ResetPassword([FromBody] ResetPasswordRequest req)
+    {
+        var resetToken = await _db.PasswordResetTokens
+            .Include(t => t.User)
+            .FirstOrDefaultAsync(t =>
+                t.Token == req.Token &&
+                !t.IsUsed &&
+                t.ExpiresAt > DateTime.UtcNow);
+
+        if (resetToken == null)
+            return BadRequest(new { message = "ბმული არასწორია ან ვადა გასულია." });
+
+        resetToken.User.PasswordHash = BCrypt.Net.BCrypt.HashPassword(req.NewPassword);
+        resetToken.IsUsed = true;
+
+        await _tokenService.RevokeAllUserTokensAsync(resetToken.UserId);
+        await _db.SaveChangesAsync();
+
+        return Ok(new { message = "პაროლი წარმატებით შეიცვალა." });
     }
 }
 

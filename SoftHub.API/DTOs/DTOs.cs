@@ -18,6 +18,9 @@ public record AuthResponse(
 
 public record RefreshRequest(string RefreshToken);
 
+public record ForgotPasswordRequest(string Email);
+public record ResetPasswordRequest(string Token, string NewPassword);
+
 // ─── User ────────────────────────────────────────────────
 public record UserDto(
     int Id,

@@ -12,6 +12,7 @@ public class AppDbContext : DbContext
     public DbSet<Note> Notes => Set<Note>();
     public DbSet<ActivityLog> ActivityLogs => Set<ActivityLog>();
     public DbSet<RefreshToken> RefreshTokens => Set<RefreshToken>();
+    public DbSet<PasswordResetToken> PasswordResetTokens => Set<PasswordResetToken>();
 
     protected override void OnModelCreating(ModelBuilder b)
     {
@@ -56,6 +57,14 @@ public class AppDbContext : DbContext
         });
 
         b.Entity<RefreshToken>(e =>
+        {
+            e.HasOne(r => r.User)
+             .WithMany()
+             .HasForeignKey(r => r.UserId)
+             .OnDelete(DeleteBehavior.Cascade);
+        });
+
+        b.Entity<PasswordResetToken>(e =>
         {
             e.HasOne(r => r.User)
              .WithMany()

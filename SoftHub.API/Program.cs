@@ -14,6 +14,7 @@ builder.Services.AddDbContext<AppDbContext>(options =>
 
 // ─── Services ────────────────────────────────────────────
 builder.Services.AddScoped<ITokenService, TokenService>();
+builder.Services.AddScoped<IEmailService, EmailService>();
 
 // ─── JWT Authentication ──────────────────────────────────
 var jwtSecret = builder.Configuration["Jwt:Secret"]
